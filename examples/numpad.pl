@@ -7,7 +7,9 @@ use lib 'lib';
 
 use Linux::USBKeyboard;
 
+# run `lsusb` to determine your vendor_id, product_id
 my $k = Linux::USBKeyboard->create(0x0e6a, 0x0001, 0);
+
 if(0) {
   print $k->_char, ".1\n";
   print $k->_char, ".2\n";

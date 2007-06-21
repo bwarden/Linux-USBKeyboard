@@ -34,7 +34,7 @@ keyboard (e.g. gaming, etc) maybe you actually want to be able to apply
 a keymap?
 
 I'm not sure how to let the main hid driver have the device back.  You
-have to unplug it and plug it back in.
+have to unplug it and plug it back in or run `libhid-detach-device`.
 
 Patches welcome.
 

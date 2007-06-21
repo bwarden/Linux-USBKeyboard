@@ -43,8 +43,7 @@ static const unsigned char kbd_upper[99] = {
 '\0',
 };
 
-char scancode_to_key(bool shifted, char scancode) {
-  unsigned int kcode = usb_kbd_keycode[scancode];
+char code_to_key(bool shifted, unsigned int kcode) {
   //fprintf(stderr, "try %d\n", kcode);
   if(shifted) {
     //fprintf(stderr, "kbd_upper %c\n", kbd_upper[kcode]);
@@ -96,16 +95,36 @@ SV*	create (char* class, int vendor_id, int product_id, int iface) {
 
 #define PACKET_LEN 8
 
+void _dump_packet(const char* packet){
+  int i;
+  fprintf(stderr, "packet: 0x");
+  for( i=0; i<PACKET_LEN; fprintf(stderr, "%02x ",packet[i++]) );
+  fprintf(stderr, "\n");
+}
+
+// XXX hmm, this scheme can't detect a second key while you're holding
+// one down.  I guess "don't do that" applies.
+int _keycode(SV* obj) {
+  HIDInterface* hid = (HIDInterface*) SvIV(SvRV(obj));
+
+  char packet[PACKET_LEN];
+  hid_return ret = hid_interrupt_read(hid,0x81,packet,PACKET_LEN,1000);
+  if(ret == HID_RET_SUCCESS) {
+    // _dump_packet(packet);
+    return usb_kbd_keycode[packet[2]];
+  }
+  return -1;
+}
+
 char _char(SV* obj) {
   HIDInterface* hid = (HIDInterface*) SvIV(SvRV(obj));
 
   char packet[PACKET_LEN];
   hid_return ret = hid_interrupt_read(hid,0x81,packet,PACKET_LEN,1000);
-  if( ret == HID_RET_SUCCESS ) {
-    if( packet[2]!=0 ) {
-      char c = scancode_to_key((packet[0] == 2), packet[2]);
-      return c;
-    }
+  // 0 is the shift code (maybe also something else)
+  // 2 is the scan code
+  if((ret == HID_RET_SUCCESS) && packet[2]) {
+    return keycode_to_key((packet[0] == 2), usb_kbd_keycode[packet[2]]);
   }
   return '\0';
 }

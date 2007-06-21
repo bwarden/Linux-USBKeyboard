@@ -16,19 +16,19 @@ $product = 1 unless(defined($product));
 my $k = eval {Linux::USBKeyboard->create($vendor, $product, 0)};
 if($@) { die "$@ - you might have the wrong permissions or address"; }
 
-if(0) {
-  print $k->_char, ".1\n";
-  print $k->_char, ".2\n";
-  print $k->_char, ".3\n";
-  print $k->_char, ".4\n";
-  print $k->_char, ".5\n";
-  print $k->_char, ".6\n";
-}
-else {
-  local $| = 1;
-  while(1) {
-    print $k->_char;
+local $| = 1;
+
+# sorry, no forks
+while(1) {
+  my $c = $k->_keycode;
+  next if($c < -1);
+  if($c == 69) {
+    print "NumLock!\n"
+  }
+  else {
+    print Linux::USBKeyboard::code_to_key(0, $c);
   }
 }
 
 # vim:ts=2:sw=2:et:sta
+

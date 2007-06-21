@@ -1,5 +1,7 @@
 package Linux::USBKeyboard;
-$VERSION = eval{require version}?version::qv($_):$_ for(0.0.1);
+BEGIN {
+  our $VERSION = 0.01;
+}
 
 use warnings;
 use strict;
@@ -7,12 +9,60 @@ use Carp;
 
 =head1 NAME
 
-Linux::USBKeyboard - 
+Linux::USBKeyboard - access devices pretending to be qwerty keyboards
 
 =head1 SYNOPSIS
 
+Use `lsusb` to discover the vendor+product id pair.
+
+=head1 ABOUT
+
+This module gives you access to usb barcode scanners, magstripe readers,
+numpads and other "pretend I'm a keyboard" hardware.
+
+It bypasses the keyboard driver so that your dvorak or international
+keymap won't get in the way.  It also allows you to distinguish one
+device from another, run as a daemon (not requiring X/console focus),
+and other good things.
+
+=head1 CAVEATS
+
+This module assumes that you want the device to use a qwerty keymap.  In the
+case of magstripes and barcode scanners, this is almost definitely the
+case.  A tenkey pad won't matter.  For some kind of secondary usermode
+keyboard (e.g. gaming, etc) maybe you actually want to be able to apply
+a keymap?
+
+I'm not sure how to let the main hid driver have the device back.  You
+have to unplug it and plug it back in.
+
+Patches welcome.
+
+=head1 SETUP
+
+You'll need a fairly modern Linux, Inline.pm, and libhid.
+
+  cpan Inline
+  aptitude install libhid-dev
+
+You should setup udev to give the device `plugdev` group permissions or
+whatever (rather than developing perl code as root.)
+
 =cut
 
+use Inline (
+  C => Config => 
+  CLEAN_AFTER_BUILD => 0,
+  LIBS => '-lhid',
+  NAME    => __PACKAGE__,
+  #VERSION => __PACKAGE__->VERSION,
+  #FORCE_BUILD => 1,
+);
+
+BEGIN {
+my $base = __FILE__; $base =~ s#.pm$#/#;
+Inline->import(C => "$base/functions.c");
+}
 
 
 

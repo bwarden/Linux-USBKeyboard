@@ -2,18 +2,17 @@
 use strict;
 use warnings;
 use Module::Build;
-my $build_class = 'Module::Build';
-my $custom_build = 'Module::Build::Live';
-eval("require $custom_build;");
-unless($@) {
-  warn "using custom build class:  '$custom_build'\n";
-  $build_class = $custom_build;
-}
+use inc::InlineBuild;
+
+my $build_class = 'inc::InlineBuild';
 
 my $builder = $build_class->new(
   module_name         => 'Linux::USBKeyboard',
   license             => 'perl',
   dist_version_from   => 'lib/Linux/USBKeyboard.pm',
+  inline_modules      => [qw(
+    Linux::USBKeyboard
+  )],
   requires => {
     'Module::Build' => 0.26,
     'Test::More'    => 0,

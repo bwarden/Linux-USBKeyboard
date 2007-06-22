@@ -64,7 +64,97 @@ my $base = __FILE__; $base =~ s#.pm$#/#;
 Inline->import(C => "$base/functions.c");
 }
 
+=head1 Constructor
 
+
+=head2 new
+
+  my $kb = Linux::USBKeyboard->new($vendor_id, $product_id);
+
+=cut
+
+sub new {
+  my $class = shift;
+  my ($vendor_id, $product_id) = @_;
+
+  my $self = $class->create($vendor_id, $product_id, 0);
+  return($self);
+} # end subroutine new definition
+########################################################################
+
+
+=head2 open
+
+Get a filehandle to a forked process.
+
+  my $fh = Linux::USBKeyboard->open($vendor_id, $product_id);
+
+=cut
+
+sub open {
+  my $package = shift;
+  my $fh = Linux::USBKeyboard::FileHandle->new;
+  my $pid = open($fh, '-|');
+  unless($pid) {
+    undef($fh); # destroy that
+    my $kb = Linux::USBKeyboard->new(@_);
+    local $| = 1;
+    $SIG{HUP} = sub { exit; };
+    while(1) {
+      print $kb->char;
+    }
+    exit;
+  }
+  $fh->init(pid => $pid);
+  return($fh);
+} # end subroutine open definition
+########################################################################
+
+=head1 Methods
+
+=head2 char
+
+Returns the character (with shift bit applied.)
+
+  print $k->char;
+
+=cut
+
+*char = *_char;
+
+=head2 keycode
+
+Get the raw keycode.  This allows access to things like numlock, but
+also returns keyup events (0).  Returns -1 if there was no event.
+
+This method is somewhat unreliable in that it can't tell you when a key
+was pressed while another key is being held down.  Consider it alpha.
+
+=cut
+
+*keycode = *_keycode;
+
+
+{
+package Linux::USBKeyboard::FileHandle;
+
+use base 'IO::Handle';
+
+my %handles;
+sub init {
+  my $self = shift;
+  $handles{$self} = {@_};
+}
+sub pid {
+  my $self = shift;
+  return($handles{$self}{pid});
+}
+sub DESTROY {
+  my $self = shift;
+  my $data = delete($handles{$self}) or return;
+  kill('HUP', $data->{pid});
+}
+} # end package
 
 
 =head1 AUTHOR

@@ -13,14 +13,14 @@ use Linux::USBKeyboard;
 my ($vendor, $product) = map({hex($_)} @ARGV);
 $product = 1 unless(defined($product));
 
-my $k = eval {Linux::USBKeyboard->create($vendor, $product, 0)};
+my $k = eval {Linux::USBKeyboard->new($vendor, $product)};
 if($@) { die "$@ - you might have the wrong permissions or address"; }
 
 local $| = 1;
 
 # sorry, no forks
 while(1) {
-  my $c = $k->_keycode;
+  my $c = $k->keycode;
   next if($c < -1);
   if($c == 69) {
     print "NumLock!\n"

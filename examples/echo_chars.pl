@@ -13,7 +13,7 @@ use Linux::USBKeyboard;
 my ($vendor, $product) = map({hex($_)} @ARGV);
 $product = 1 unless(defined($product));
 
-my $k = eval {Linux::USBKeyboard->create($vendor, $product, 0)};
+my $k = eval {Linux::USBKeyboard->new($vendor, $product)};
 if($@) { die "$@ - you might have the wrong permissions or address"; }
 
 if(0) {
@@ -27,7 +27,7 @@ if(0) {
 else {
   local $| = 1;
   while(1) {
-    print $k->_char;
+    print $k->char;
   }
 }
 

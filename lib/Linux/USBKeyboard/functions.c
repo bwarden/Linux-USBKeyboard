@@ -124,7 +124,7 @@ char _char(SV* obj) {
   // 0 is the shift code (maybe also something else)
   // 2 is the scan code
   if((ret == HID_RET_SUCCESS) && packet[2]) {
-    return keycode_to_key((packet[0] == 2), usb_kbd_keycode[packet[2]]);
+    return code_to_key((packet[0] == 2), usb_kbd_keycode[packet[2]]);
   }
   return '\0';
 }

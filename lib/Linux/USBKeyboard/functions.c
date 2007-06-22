@@ -116,17 +116,29 @@ int _keycode(SV* obj) {
   return -1;
 }
 
-char _char(SV* obj) {
+SV * _char(SV* obj) {
   HIDInterface* hid = (HIDInterface*) SvIV(SvRV(obj));
+  SV * ans;
 
   char packet[PACKET_LEN];
   hid_return ret = hid_interrupt_read(hid,0x81,packet,PACKET_LEN,1000);
   // 0 is the shift code (maybe also something else)
   // 2 is the scan code
   if((ret == HID_RET_SUCCESS) && packet[2]) {
-    return code_to_key((packet[0] == 2), usb_kbd_keycode[packet[2]]);
+    char c = code_to_key((packet[0] == 2), usb_kbd_keycode[packet[2]]);
+    if(c) {
+      const char str [2] = {c, '\0'};
+      ans = newSVpvn( str, 1);
+    }
+    else {
+      ans = newSVpvn( "", 0);
+    }
   }
-  return '\0';
+  else {
+    ans = newSVpvn( "", 0);
+  }
+
+  return ans;
 }
 
 void DESTROY(SV* obj) {

@@ -62,6 +62,7 @@ use Inline (
 BEGIN {
 my $base = __FILE__; $base =~ s#.pm$#/#;
 Inline->import(C => "$base/functions.c");
+$ENV{DBG} and warn "ready\n";
 }
 
 =head1 Constructor
@@ -102,7 +103,6 @@ sub open {
     $SIG{HUP} = sub { exit; };
     while(1) {
       my $c = $kb->char;
-      ($c eq "\0") and next;
       print $c if(length($c));
     }
     exit;

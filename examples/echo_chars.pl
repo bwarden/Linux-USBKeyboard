@@ -27,7 +27,9 @@ if(0) {
 else {
   local $| = 1;
   while(1) {
-    print $k->char;
+    my $c = $k->char;
+    #print $c, '(', length($c), ')';
+    print $c;
   }
 }
 

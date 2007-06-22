@@ -101,7 +101,9 @@ sub open {
     local $| = 1;
     $SIG{HUP} = sub { exit; };
     while(1) {
-      print $kb->char;
+      my $c = $kb->char;
+      ($c eq "\0") and next;
+      print $c if(length($c));
     }
     exit;
   }

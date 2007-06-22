@@ -90,6 +90,14 @@ Get a filehandle to a forked process.
 
   my $fh = Linux::USBKeyboard->open($vendor_id, $product_id);
 
+The filehandle is an object from a subclass of IO::Handle.  It has the
+method $fh->pid if you need the process id.  The subprocess will be
+automatically killed by the object's destructor.
+
+I've tested reading with readline($fh) and getc($fh) (both of which will
+block.)  See examples/multi.pl for an example of IO::Select non-blocking
+multi-device usage.
+
 =cut
 
 sub open {

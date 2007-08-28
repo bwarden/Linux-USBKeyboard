@@ -76,13 +76,57 @@ $ENV{DBG} and warn "ready\n";
 
 sub new {
   my $class = shift;
-  my ($vendor_id, $product_id) = @_;
+  my ($vendor_id, $product_id) = $class->_check_args(@_);
 
   my $self = $class->create($vendor_id, $product_id, 0);
   return($self);
 } # end subroutine new definition
 ########################################################################
 
+=head2 _check_args
+
+Hex numbers passed as strings must include the leading '0x', otherwise
+they are assumed to be integers.
+
+Arguments may also be a hash (vendor => $v, product => $p.)
+
+  my ($vendor_id, $product_id) = $class->_check_args(@_);
+
+=cut
+
+sub _check_args {
+  my $class = shift;
+  my (@args) = @_;
+
+  my $d = sub {$_[0] =~ m/^\d+$/};
+  my $hexit = sub {
+    my ($n) = @_;
+    return($n) unless($n =~ m/^0x/i or $n =~ m/\D/);
+    $n =~ m/^0x[a-f0-9]+$/i or croak("'$n' is not hex-like");
+    return(hex($n));
+  };
+  if(scalar(@args) == 2 and $d->($args[0]) and $d->($args[1])) {
+    return(@args); # explicit vendor/product
+  }
+
+  # hex strings or errors
+  if(scalar(@args) == 2) {
+    foreach my $arg (@args) {
+      $arg = $hexit->($arg);
+    }
+    return(@args);
+  }
+
+  # hash arguments
+  (@args % 2) and croak("odd number of elements in argument hash");
+  my %hash = @args;
+  for(qw(vendor product)) {
+    exists($hash{$_}) or croak("must have '$_' argument");
+    $hash{$_} = $hexit->($hash{$_});
+  }
+  return($hash{vendor}, $hash{product});
+} # end subroutine _check_args definition
+########################################################################
 
 =head2 open
 

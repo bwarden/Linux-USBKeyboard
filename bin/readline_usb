@@ -18,6 +18,8 @@ use YAML;
 
 sub main {
   my (@args) = @_;
+
+  @args or die "usage $0 <profile>\n";
   my %conf = load_config(@args);
   my $kb = Linux::USBKeyboard->open(%conf);
   while(my $line = <$kb>) {

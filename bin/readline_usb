@@ -22,6 +22,7 @@ sub main {
   @args or die "usage $0 <profile>\n";
   my %conf = load_config(@args);
   my $kb = Linux::USBKeyboard->open(%conf);
+  $| = 1;
   while(my $line = <$kb>) {
     print $line;
   }

@@ -1,8 +1,15 @@
+bin/readline_usb
 Build.PL
 Changes
-MANIFEST
-MANIFEST.SKIP
-META.yml # Will be created by "make dist"
-README
+examples/echo_chars.pl
+examples/echo_codes.pl
+examples/forked_reader.pl
+examples/multi.pl
+inc/InlineBuild.pm
 lib/Linux/USBKeyboard.pm
+lib/Linux/USBKeyboard/functions.c
+MANIFEST			This list of files
+MANIFEST.SKIP
+README
 t/00-load.t
+t/arguments.t

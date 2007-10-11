@@ -20,7 +20,12 @@ my $builder = $build_class->new(
   requires => {
     'Inline::C'     => 0,
   },
-  add_to_cleanup      => [ qw(Linux-USBKeyboard-* META.yml)],
+  add_to_cleanup      => [ qw(
+    Linux-USBKeyboard-*
+    META.yml
+    _Inline
+    USBKeyboard.inl
+  )],
 );
 
 $builder->create_build_script();

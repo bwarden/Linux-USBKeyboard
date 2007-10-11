@@ -13,9 +13,11 @@ my $builder = $build_class->new(
   inline_modules      => [qw(
     Linux::USBKeyboard
   )],
-  requires => {
+  build_requires => {
     'Module::Build' => 0.26,
     'Test::More'    => 0,
+  },
+  requires => {
     'Inline::C'     => 0,
   },
   add_to_cleanup      => [ qw(Linux-USBKeyboard-* META.yml)],

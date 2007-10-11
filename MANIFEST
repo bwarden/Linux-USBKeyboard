@@ -13,3 +13,4 @@ MANIFEST.SKIP
 README
 t/00-load.t
 t/arguments.t
+META.yml

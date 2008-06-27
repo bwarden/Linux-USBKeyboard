@@ -1,6 +1,6 @@
 package Linux::USBKeyboard;
 BEGIN {
-  our $VERSION = 0.01;
+  our $VERSION = 0.02;
 }
 
 use warnings;
@@ -40,23 +40,26 @@ Patches welcome.
 
 =head1 SETUP
 
-You'll need a fairly modern Linux, Inline.pm, and libhid.
+You'll need a fairly modern Linux, Inline.pm, and libusb.
 
   cpan Inline
-  aptitude install libhid-dev
+  aptitude install libusb-dev
 
 You should setup udev to give the device `plugdev` group permissions or
-whatever (rather than developing perl code as root.)
+whatever (rather than developing perl code as root.)  One way to do this
+would be to add the following to /etc/udev/permissions.rules:
+
+  SUBSYSTEM=="usb_device", GROUP="plugdev"
 
 =cut
 
 use Inline (
   C => Config => 
-  CLEAN_AFTER_BUILD => 0,
-  LIBS => '-lhid',
+  LIBS => '-lusb',
   NAME    => __PACKAGE__,
   #VERSION => __PACKAGE__->VERSION,
   #FORCE_BUILD => 1,
+  #CLEAN_AFTER_BUILD => 0,
 );
 
 BEGIN {
@@ -146,6 +149,10 @@ multi-device usage.
 
 sub open {
   my $package = shift;
+  # TODO I think I want to pass a subref in here which allows you to
+  # have your own handling of the codes - e.g. to read F1 and such.
+  # Or, I just map it out and have an open_codes()?
+
   my $fh = Linux::USBKeyboard::FileHandle->new;
   my $pid = open($fh, '-|');
   unless($pid) {

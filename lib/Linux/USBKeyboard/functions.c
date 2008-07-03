@@ -22,25 +22,25 @@ static const unsigned char usb_kbd_keycode[256] = {
 
 // generated structures:
 
-static const unsigned char kbd_lower[99] = {
+static const unsigned char kbd_lower[127] = {
 '\0', '\0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', // 13
-'\b', '\0', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', // 27
+'\0', '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', // 27
 '\n', '\0', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`', // 41
 '\0', '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', '\0', '*', // 55
 '\0', ' ', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
 '\0', '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.',
 '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\n', '\0',
-'/',
+'/', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'
 };
-static const unsigned char kbd_upper[99] = {
+static const unsigned char kbd_upper[127] = {
 '\0', '\0', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+',
-'\b', '\0', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}',
+'\0', '\0', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}',
 '\0', '\0', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', '\0', '"', '~',
 '\0', '|', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', '\0', '\0',
 '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
 '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
 '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-'\0',
+'\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'
 };
 
 char code_to_key(bool shifted, unsigned int kcode) {
@@ -56,7 +56,7 @@ char code_to_key(bool shifted, unsigned int kcode) {
 }
 
 void cleanup(usb_dev_handle *handle) {
-  usb_release_interface(handle, 0);
+  int ret = usb_release_interface(handle, 0);
   usb_close(handle);
 }
 
@@ -114,18 +114,29 @@ void _dump_packet(const char* packet) {
 
 // XXX hmm, this scheme can't detect a second key while you're holding
 // one down.  I guess "don't do that" applies.
-int _keycode(SV* obj) {
+void _keycode(SV* obj, int timeout) {
+	Inline_Stack_Vars;
   usb_dev_handle* handle = (usb_dev_handle*) SvIV(SvRV(obj));
 
-  char packet[PACKET_LEN];
+	Inline_Stack_Reset;
+
+  // XXX right_super is a lot bigger than 255 for some reason?
+  unsigned char packet[PACKET_LEN];
   // croak("handle is %d", handle);
-  int ret = usb_interrupt_read(handle, 0x81, packet, PACKET_LEN, 1000);
-  // fprintf(stderr, "read (%d)\n", ret);
+  int ret = usb_interrupt_read(handle, 0x81, packet, PACKET_LEN, timeout);
   if(ret > 0) {
-    // _dump_packet(packet);
-    return usb_kbd_keycode[packet[2]];
+    // fprintf(stderr, "read %d bytes\n", ret);
+    Inline_Stack_Push(sv_2mortal(newSViv(usb_kbd_keycode[packet[2]])));
+    if(packet[0]) {
+      packet[0] ^= packet[0] & 0xffffff00; // ugh
+      // _dump_packet(packet);
+      Inline_Stack_Push(sv_2mortal(newSViv(packet[0])));
+    }
   }
-  return -1;
+  else {
+    Inline_Stack_Push(sv_2mortal(newSViv(-1)));
+  }
+	Inline_Stack_Done;		
 }
 
 SV * _char(SV* obj) {

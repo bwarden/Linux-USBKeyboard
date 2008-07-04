@@ -200,7 +200,7 @@ abbreviations in lowercase except for F1-F12.
 
 {
 my %cmap = reverse(
-  escpe  => 1,
+  escape  => 1,
   map({('F'.$_ => 58+$_)} 1..10),
   F11 => 87,
   F12 => 88,
@@ -219,7 +219,7 @@ my %cmap = reverse(
   left   => 105,
   right  => 106,
   up     => 103,
-  dn     => 108,
+  down   => 108,
   select => 127,
 
   space  => 57,

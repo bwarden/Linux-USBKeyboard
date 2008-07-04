@@ -35,7 +35,7 @@ static const unsigned char kbd_lower[127] = {
 static const unsigned char kbd_upper[127] = {
 '\0', '\0', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+',
 '\0', '\0', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}',
-'\0', '\0', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', '\0', '"', '~',
+'\0', '\0', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', '~',
 '\0', '|', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', '\0', '\0',
 '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
 '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
@@ -124,7 +124,7 @@ void _keycode(SV* obj, int timeout) {
   unsigned char packet[PACKET_LEN];
   // croak("handle is %d", handle);
   int ret = usb_interrupt_read(handle, 0x81, packet, PACKET_LEN, timeout);
-  if(ret > 0) {
+  if(ret > 0 && ! packet[3]) {
     // fprintf(stderr, "read %d bytes\n", ret);
     Inline_Stack_Push(sv_2mortal(newSViv(usb_kbd_keycode[packet[2]])));
     if(packet[0]) {

@@ -17,7 +17,9 @@ my @args = @ARGV;
 (@args) or
   die 'run `lsusb` to determine your vendor_id, product_id';
 my ($vendor, $product) = map({hex($_)}
-  $#args ? @args : split(/:/, $args[0]));
+  $#args ? @args[0,1] : split(/:/, $args[0]));
+
+my $exit = $args[2];
 
 $product = 1 unless(defined($product));
 
@@ -38,6 +40,7 @@ else {
     my $c = $k->char;
     #print $c, '(', length($c), ')';
     print $c;
+    last if($c eq "\n" and $exit);
   }
 }
 

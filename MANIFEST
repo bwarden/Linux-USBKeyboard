@@ -3,6 +3,7 @@ Build.PL
 Changes
 examples/echo_chars.pl
 examples/echo_codes.pl
+examples/echo_keys.pl
 examples/forked_reader.pl
 examples/multi.pl
 inc/InlineBuild.pm
@@ -14,3 +15,8 @@ META.yml
 README
 t/00-load.t
 t/arguments.t
+toys/barcode.pl
+toys/calc.pl
+toys/CalcApp.pm
+toys/gvim_mp.pl
+toys/launcher.pl

@@ -68,6 +68,18 @@ Inline->import(C => "$base/functions.c");
 $ENV{DBG} and warn "ready\n";
 }
 
+my %PROPS;
+sub DESTROY {
+  my $self = shift;
+  delete($PROPS{$self});
+  $self->_destroy;
+}
+sub xmap {
+  my $self = shift;
+  my $p = $PROPS{$self} or return;
+  return($p->{xmap});
+}
+
 =head1 Constructor
 
 
@@ -79,9 +91,13 @@ $ENV{DBG} and warn "ready\n";
 
 sub new {
   my $class = shift;
-  my ($vendor_id, $product_id) = $class->_check_args(@_);
+  my ($vendor_id, $product_id, %props) = $class->_check_args(@_);
 
   my $self = $class->create($vendor_id, $product_id, 0);
+  if(%props) {
+    $PROPS{$self} = \%props;
+  }
+
   return($self);
 } # end subroutine new definition
 ########################################################################
@@ -125,9 +141,9 @@ sub _check_args {
   my %hash = @args;
   for(qw(vendor product)) {
     exists($hash{$_}) or croak("must have '$_' argument");
-    $hash{$_} = $hexit->($hash{$_});
+    $hash{$_} = $hexit->(delete($hash{$_}));
   }
-  return($hash{vendor}, $hash{product});
+  return($hash{vendor}, $hash{product}, %hash);
 } # end subroutine _check_args definition
 ########################################################################
 
@@ -261,8 +277,12 @@ sub open_keys {
   unless($pid) {
     undef($fh); # destroy that
     my $kb = Linux::USBKeyboard->new(@_);
+
     local $| = 1;
     $SIG{HUP} = sub { exit; };
+
+    my $xmap = $kb->xmap;
+
     while(1) {
       my ($c, $s) = $kb->keycode;
       next if($c <= 0);
@@ -283,6 +303,10 @@ sub open_keys {
         $k = code_to_key($sbits{shift}, $c);
         next if($k eq "\0"); # XXX bah
         delete($sbits{shift});
+      }
+
+      if($xmap) {
+        $k = $xmap->{$k} if(exists($xmap->{$k}));
       }
       print "$k" .
         (%sbits ? join(' ', '', sort(keys %sbits)) : '') .

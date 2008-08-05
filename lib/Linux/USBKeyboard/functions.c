@@ -165,7 +165,7 @@ SV * _char(SV* obj) {
   return ans;
 }
 
-void DESTROY(SV* obj) {
+void _destroy(SV* obj) {
   usb_dev_handle* handle = (usb_dev_handle*) SvIV(SvRV(obj));
   if(handle)
     cleanup(handle);

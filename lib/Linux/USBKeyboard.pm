@@ -143,7 +143,7 @@ sub _check_args {
     exists($hash{$_}) or croak("must have '$_' argument");
     $hash{$_} = $hexit->(delete($hash{$_}));
   }
-  return($hash{vendor}, $hash{product}, %hash);
+  return(delete($hash{vendor}), delete($hash{product}), %hash);
 } # end subroutine _check_args definition
 ########################################################################
 

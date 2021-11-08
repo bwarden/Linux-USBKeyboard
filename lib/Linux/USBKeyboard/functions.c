@@ -1,4 +1,5 @@
-#include <usb.h>
+#include <libusb-1.0/libusb.h>
+static libusb_context *context = NULL;
 
 // from /usr/src/linux/drivers/usb/input/usbkbd.c
 static const unsigned char usb_kbd_keycode[256] = {
@@ -55,52 +56,61 @@ char code_to_key(bool shifted, unsigned int kcode) {
   }
 }
 
-void cleanup(usb_dev_handle *handle) {
-  usb_release_interface(handle, 0);
-  usb_close(handle);
+void cleanup(libusb_device_handle *handle) {
+  libusb_release_interface(handle, 0);
+  libusb_close(handle);
 }
 
-usb_dev_handle* _find_device (int vendor, int product, int busnum, int devnum, int iface) {
-  struct usb_bus *bus;
-  struct usb_device *device;
-  usb_dev_handle *handle;
+libusb_device_handle* _find_device (int vendor, int product, int busnum, int devnum, int iface) {
   int ret;
   static bool initialized = 0;
+  libusb_device **list = NULL;
+  libusb_device_handle *handle;
+  ssize_t count = 0;
+  int found = 0;
 
   if(!initialized) {
-    usb_init();          // do once per process instantiation
+    ret = libusb_init(&context); // do once per process instantiation
+    assert(ret == 0);
     initialized = 1;
   }
-  usb_find_busses();
-  usb_find_devices();
-  // TODO have my own globals for init?
-  bus = usb_get_busses();
 
-  for(; bus; bus = bus->next) {
-    if (busnum >= 0 && atoi(bus->dirname) != busnum) continue;
-    for(device = bus->devices; device; device = device->next) {
-      if (devnum >= 0 && device->devnum != devnum) continue;
-      if ( (vendor  < 0 || device->descriptor.idVendor  == vendor)  &&
-           (product < 0 || device->descriptor.idProduct == product) ) {
-        handle = usb_open(device);
-        // XXX non-portable, and I guess we don't need to retry
-        usb_detach_kernel_driver_np(handle, iface);
-        ret = usb_claim_interface(handle, iface);
-        if(ret) {
-          croak("could not claim device interface %d (%d)", iface, ret);
-        }
-        // usb_clear_halt(handle, 0x81);
-        return(handle);
+  count = libusb_get_device_list(context, &list);
+  assert(count > 0);
+
+  for (size_t i = 0; i < count; ++i) {
+    libusb_device *device = list[i];
+    struct libusb_device_descriptor desc = {0};
+
+    ret = libusb_get_device_descriptor(device, &desc);
+
+    if (busnum >= 0 && libusb_get_bus_number(device) != busnum) continue;
+    if (devnum >= 0 && libusb_get_device_address(device) != devnum) continue;
+    if ( (vendor  < 0 || desc.idVendor  == vendor)  &&
+        (product < 0 || desc.idProduct == product) ) {
+      ret = libusb_open(device, &handle);
+      // XXX non-portable, and I guess we don't need to retry
+      ret = libusb_set_auto_detach_kernel_driver(handle, 1);
+      ret = libusb_claim_interface(handle, iface);
+      if(ret) {
+        croak("could not claim device interface %d (%d)", iface, ret);
       }
+      // libusb_clear_halt(handle, 0x81);
+      found++;
     }
   }
+  libusb_free_device_list(list, count);
 
-  char vStr[30] = "", pStr[30] = "", bStr[30] = "", dStr[30] = "";
-  if (vendor  >= 0) snprintf(vStr, sizeof(vStr), " vendor=0x%x",  vendor);
-  if (product >= 0) snprintf(pStr, sizeof(pStr), " product=0x%x", product);
-  if (busnum  >= 0) snprintf(bStr, sizeof(bStr), " busnum=%d",    busnum);
-  if (devnum  >= 0) snprintf(dStr, sizeof(dStr), " devnum=%d",    devnum);
-  croak("failed to find any device matching:%s%s%s%s", vStr, pStr, bStr, dStr);
+  if (!found) {
+    char vStr[30] = "", pStr[30] = "", bStr[30] = "", dStr[30] = "";
+    if (vendor  >= 0) snprintf(vStr, sizeof(vStr), " vendor=0x%x",  vendor);
+    if (product >= 0) snprintf(pStr, sizeof(pStr), " product=0x%x", product);
+    if (busnum  >= 0) snprintf(bStr, sizeof(bStr), " busnum=%d",    busnum);
+    if (devnum  >= 0) snprintf(dStr, sizeof(dStr), " devnum=%d",    devnum);
+    croak("failed to find any device matching:%s%s%s%s", vStr, pStr, bStr, dStr);
+  }
+
+  return(handle);
 }
 
 int fetchInt(HV* hash, const char* key, int len, int defaultVal) {
@@ -119,7 +129,7 @@ void _usb_init (SV* obj) {
   int devnum  = fetchInt(selector, "devnum",  6, -1);
   int iface   = fetchInt(selector, "iface",   5,  0);
 
-  struct usb_dev_handle *handle = _find_device(vendor, product, busnum, devnum, iface);
+  libusb_device_handle *handle = _find_device(vendor, product, busnum, devnum, iface);
   // fprintf(stderr, "got handle %d\n", handle);
   hv_store((HV*)SvRV(obj), "handle", 6, newSViv((IV)handle), 0);
 }
@@ -136,14 +146,15 @@ void _dump_packet(const char* packet) {
 void _keycode(SV* obj, int timeout) {
   Inline_Stack_Vars;
   int prevKeydown = fetchInt((HV*)SvRV(obj), "prevKeydown", 11, 0);
-  usb_dev_handle* handle = (usb_dev_handle*) fetchInt((HV*)SvRV(obj), "handle", 6, 0);
+  libusb_device_handle* handle = (libusb_device_handle*) fetchInt((HV*)SvRV(obj), "handle", 6, 0);
 
   Inline_Stack_Reset;
 
   // XXX right_super is a lot bigger than 255 for some reason?
+  int latest = 0;
   unsigned char packet[PACKET_LEN];
   // croak("handle is %d", handle);
-  int latest = usb_interrupt_read(handle, 0x81, packet, PACKET_LEN, timeout);
+  int usbrc = libusb_interrupt_transfer(handle, 0x81, packet, PACKET_LEN, &latest, timeout);
 
   // find the most recent keydown (there could be several)
   for (--latest; latest > 1 && packet[latest] == 0; --latest) {}
@@ -169,11 +180,12 @@ void _keycode(SV* obj, int timeout) {
 
 SV * _char(SV* obj) {
   int prevKeydown = fetchInt((HV*)SvRV(obj), "prevKeydown", 11, 0);
-  usb_dev_handle* handle = (usb_dev_handle*) fetchInt((HV*)SvRV(obj), "handle", 6, 0);
+  libusb_device_handle* handle = (libusb_device_handle*) fetchInt((HV*)SvRV(obj), "handle", 6, 0);
   SV * ans;
 
+  int latest = 0;
   char packet[PACKET_LEN];
-  int latest = usb_interrupt_read(handle, 0x81, packet, PACKET_LEN, 1000);
+  int usbrc = libusb_interrupt_transfer(handle, 0x81, packet, PACKET_LEN, &latest, 1000);
 
   // find the most recent keydown (there could be several)
   for (--latest; latest > 1 && packet[latest] == 0; --latest) {}
@@ -201,7 +213,7 @@ SV * _char(SV* obj) {
 }
 
 void _destroy(SV* obj) {
-  usb_dev_handle* handle = (usb_dev_handle*) fetchInt((HV*)SvRV(obj), "handle", 6, 0);
+  libusb_device_handle* handle = (libusb_device_handle*) fetchInt((HV*)SvRV(obj), "handle", 6, 0);
   if(handle)
     cleanup(handle);
 }

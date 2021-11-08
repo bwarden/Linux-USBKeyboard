@@ -1,5 +1,6 @@
 use strict;
 use warnings;
+use lib qw(.);
 use Module::Build;
 use inc::InlineBuild;
 
@@ -31,7 +32,7 @@ my $builder = $build_class->new(
 use lib qw(inc);
 require Devel::CheckLib;
 # uh... is it really worth it
-eval { Devel::CheckLib::assert_lib(lib => 'usb') };
+eval { Devel::CheckLib::assert_lib(lib => 'usb-1.0') };
 if(my $err = $@) {
   $err = "ERROR we need to be able to link against libusb!\n$err";
   if($ENV{AUTOMATED_TESTING}) {

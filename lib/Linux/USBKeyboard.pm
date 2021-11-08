@@ -41,10 +41,10 @@ Patches welcome.
 
 =head1 SETUP
 
-You'll need a fairly modern Linux, Inline.pm, and libusb.
+You'll need a fairly modern Linux, Inline.pm, and libusb 1.0.
 
   cpan Inline
-  aptitude install libusb-dev
+  aptitude install libusb-1.0-0-dev
 
 You should setup udev to give the device `plugdev` group permissions or
 whatever (rather than developing perl code as root.)  One way to do this
@@ -56,7 +56,7 @@ would be to add the following to /etc/udev/permissions.rules:
 
 use Inline (
   C => Config =>
-  LIBS => '-lusb',
+  LIBS => '-lusb-1.0',
   NAME    => __PACKAGE__,
   #VERSION => __PACKAGE__->VERSION,
   #FORCE_BUILD => 1,

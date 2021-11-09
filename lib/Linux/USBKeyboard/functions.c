@@ -143,7 +143,7 @@ void _usb_init (SV* obj) {
 
   libusb_device_handle *handle = _find_device(vendor, product, busnum, devnum, iface);
   // fprintf(stderr, "got handle %d\n", handle);
-  hv_store((HV*)SvRV(obj), "handle", 6, newSViv((IV)handle), 0);
+  hv_store((HV*)SvRV(obj), "handle", 6, newSViv(PTR2IV(handle)), 0);
 }
 
 #define PACKET_LEN 8
@@ -158,7 +158,7 @@ void _dump_packet(const char* packet) {
 void _keycode(SV* obj, int timeout) {
   Inline_Stack_Vars;
   int prevKeydown = fetchInt((HV*)SvRV(obj), "prevKeydown", 11, 0);
-  libusb_device_handle* handle = (libusb_device_handle*) fetchInt((HV*)SvRV(obj), "handle", 6, 0);
+  libusb_device_handle* handle = INT2PTR(libusb_device_handle*, SvIV(*hv_fetch((HV*)SvRV(obj), "handle", 6, 0)));
 
   Inline_Stack_Reset;
 
@@ -192,7 +192,7 @@ void _keycode(SV* obj, int timeout) {
 
 SV * _char(SV* obj) {
   int prevKeydown = fetchInt((HV*)SvRV(obj), "prevKeydown", 11, 0);
-  libusb_device_handle* handle = (libusb_device_handle*) fetchInt((HV*)SvRV(obj), "handle", 6, 0);
+  libusb_device_handle* handle = INT2PTR(libusb_device_handle*, SvIV(*hv_fetch((HV*)SvRV(obj), "handle", 6, 0)));
   SV * ans;
 
   unsigned char packet[PACKET_LEN];
@@ -227,7 +227,7 @@ SV * _char(SV* obj) {
 }
 
 void _destroy(SV* obj) {
-  libusb_device_handle* handle = (libusb_device_handle*) fetchInt((HV*)SvRV(obj), "handle", 6, 0);
+  libusb_device_handle* handle = INT2PTR(libusb_device_handle*, SvIV(*hv_fetch((HV*)SvRV(obj), "handle", 6, 0)));
   if(handle)
     cleanup(handle);
 }

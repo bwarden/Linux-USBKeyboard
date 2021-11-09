@@ -57,7 +57,11 @@ char code_to_key(bool shifted, unsigned int kcode) {
 }
 
 void cleanup(libusb_device_handle *handle) {
-  libusb_release_interface(handle, 0);
+  int ret;
+  ret = libusb_release_interface(handle, 0);
+  if(ret) {
+    croak("libusb_release_interface (%d)", ret);
+  }
   libusb_close(handle);
 }
 
@@ -65,7 +69,7 @@ libusb_device_handle* _find_device (int vendor, int product, int busnum, int dev
   int ret;
   static bool initialized = 0;
   libusb_device **list = NULL;
-  libusb_device_handle *handle;
+  libusb_device_handle *handle = NULL;
   ssize_t count = 0;
   int found = 0;
 
@@ -88,15 +92,23 @@ libusb_device_handle* _find_device (int vendor, int product, int busnum, int dev
     if (devnum >= 0 && libusb_get_device_address(device) != devnum) continue;
     if ( (vendor  < 0 || desc.idVendor  == vendor)  &&
         (product < 0 || desc.idProduct == product) ) {
+
       ret = libusb_open(device, &handle);
+      if(ret) {
+        croak("could not open handle for device (%d)", ret);
+      }
       // XXX non-portable, and I guess we don't need to retry
       ret = libusb_set_auto_detach_kernel_driver(handle, 1);
+      if(ret) {
+        croak("could not set auto detach for kernel driver (%d)", ret);
+      }
       ret = libusb_claim_interface(handle, iface);
       if(ret) {
         croak("could not claim device interface %d (%d)", iface, ret);
       }
       // libusb_clear_halt(handle, 0x81);
       found++;
+      break;
     }
   }
   libusb_free_device_list(list, count);
@@ -183,9 +195,11 @@ SV * _char(SV* obj) {
   libusb_device_handle* handle = (libusb_device_handle*) fetchInt((HV*)SvRV(obj), "handle", 6, 0);
   SV * ans;
 
+  unsigned char packet[PACKET_LEN];
   int latest = 0;
-  char packet[PACKET_LEN];
-  int usbrc = libusb_interrupt_transfer(handle, 0x81, packet, PACKET_LEN, &latest, 1000);
+  int usbrc;
+
+  usbrc = libusb_interrupt_transfer(handle, 0x81, packet, PACKET_LEN, &latest, 1000);
 
   // find the most recent keydown (there could be several)
   for (--latest; latest > 1 && packet[latest] == 0; --latest) {}
